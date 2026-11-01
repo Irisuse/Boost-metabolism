@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代謝重啟 - 40+ 專屬健康陪伴助手</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js for Weight Trend -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts Inter & Noto Sans TC -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        amber: {
+                            50: '#fffbebe6',
+                            100: '#fef3c7',
+                            200: '#fde68a',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                            700: '#b45309',
+                            800: '#92400e',
+                        },
+                        sage: {
+                            50: '#f4f7f4',
+                            100: '#e3ebe3',
+                            200: '#c5d7c5',
+                            500: '#789c78',
+                            600: '#5c7d5c',
+                            700: '#486148',
+                        },
+                        milk: {
+                            50: '#fdfbf7',
+                            100: '#f7f3eb',
+                            200: '#ebe3d3',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Noto Sans TC', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #fcf9f2;
+            color: #4a403a;
+            font-family: 'Noto Sans TC', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* 水波動畫效果 */
+        .water-wave {
+            transition: height 0.5s ease-in-out, background-color 0.3s;
+        }
+        /* 自訂卡片微陰影 */
+        .card-shadow {
+            box-shadow: 0 10px 25px -5px rgba(180, 140, 100, 0.08), 0 8px 10px -6px rgba(180, 140, 100, 0.05);
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-12 antialiased">
+
+    <!-- 頂部導覽列與日期顯示 -->
+    <header class="bg-milk-100/80 backdrop-blur-md border-b border-amber-200/50 sticky top-0 z-50 px-4 py-3">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="w-9 h-9 rounded-full bg-amber-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+                    <i data-lucide="flame" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h1 class="text-base font-bold text-amber-800 tracking-wide">代謝重啟日記</h1>
+                    <p id="current-date" class="text-xs text-stone-500">2026年11月1日 星期日</p>
+                </div>
+            </div>
+            <button onclick="resetTodayData()" class="p-2 text-stone-400 hover:text-amber-700 transition" title="重置今天數據">
+                <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto px-4 pt-4 space-y-5">
+
+        <!-- 代謝激勵語錄卡片 -->
+        <div class="bg-gradient-to-r from-amber-100 to-amber-50 p-4 rounded-2xl border border-amber-200/60 card-shadow flex items-start gap-3">
+            <div class="p-2 bg-white rounded-xl text-amber-600 shadow-sm shrink-0 mt-0.5">
+                <i data-lucide="sparkles" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h2 class="text-xs font-semibold text-amber-800 uppercase tracking-wider mb-0.5">今日代謝小語</h2>
+                <p id="quote-text" class="text-sm font-medium text-stone-700 leading-relaxed">
+                    「多喝一口水，就是為身體的代謝引擎加滿油！慢慢來，每天進步一點點就很好。」
+                </p>
+            </div>
+        </div>
+
+        <!-- 任務 1: 水分補充 (2000c.c. 目標) -->
+        <section class="bg-white p-5 rounded-3xl border border-stone-100 card-shadow relative overflow-hidden">
+            <div class="flex justify-between items-start mb-3 relative z-10">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-2.5 bg-blue-50 text-blue-500 rounded-2xl">
+                        <i data-lucide="droplet" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-stone-800 text-base">1. 水分補充</h3>
+                        <p class="text-xs text-stone-400">促進新陳代謝核心關鍵</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span id="water-amount" class="text-2xl font-black text-blue-600">0</span>
+                    <span class="text-xs text-stone-400 font-medium"> / 2000 c.c.</span>
+                </div>
+            </div>
+
+            <!-- 水量動態進度條 -->
+            <div class="w-full bg-stone-100 h-4 rounded-full overflow-hidden mb-4 relative p-0.5 border border-stone-200/50">
+                <div id="water-progress-bar" class="water-wave bg-gradient-to-r from-blue-400 to-cyan-400 h-full rounded-full w-0"></div>
+            </div>
+
+            <!-- 加水快捷按鈕區 -->
+            <div class="grid grid-cols-3 gap-2.5 relative z-10">
+                <button onclick="addWater(250)" class="py-2.5 px-3 bg-blue-50/80 hover:bg-blue-100 text-blue-700 rounded-xl font-medium text-xs flex items-center justify-center gap-1 transition active:scale-95 border border-blue-100">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> 250 c.c.
+                </button>
+                <button onclick="addWater(500)" class="py-2.5 px-3 bg-blue-50/80 hover:bg-blue-100 text-blue-700 rounded-xl font-medium text-xs flex items-center justify-center gap-1 transition active:scale-95 border border-blue-100">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> 500 c.c.
+                </button>
+                <button onclick="resetWater()" class="py-2.5 px-3 bg-stone-100 hover:bg-stone-200 text-stone-500 rounded-xl font-medium text-xs transition active:scale-95">
+                    重置
+                </button>
+            </div>
+        </section>
+
+        <!-- 任務 2: 蛋白質攝取 (3餐打卡) -->
+        <section class="bg-white p-5 rounded-3xl border border-stone-100 card-shadow">
+            <div class="flex items-center gap-2.5 mb-3">
+                <div class="p-2.5 bg-amber-50 text-amber-600 rounded-2xl">
+                    <i data-lucide="egg" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-stone-800 text-base">2. 每餐優質蛋白質</h3>
+                    <p class="text-xs text-stone-400">提高食物熱效應，保護肌肉</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2.5 pt-1">
+                <button onclick="toggleProtein('breakfast')" id="btn-protein-breakfast" class="p-3 rounded-2xl border border-stone-200 bg-milk-50 text-stone-600 text-xs font-semibold flex flex-col items-center gap-1.5 transition active:scale-95">
+                    <i data-lucide="sun" class="w-5 h-5 text-amber-500"></i>
+                    早餐
+                    <span id="badge-breakfast" class="text-[10px] text-stone-400 font-normal">未打卡</span>
+                </button>
+                <button onclick="toggleProtein('lunch')" id="btn-protein-lunch" class="p-3 rounded-2xl border border-stone-200 bg-milk-50 text-stone-600 text-xs font-semibold flex flex-col items-center gap-1.5 transition active:scale-95">
+                    <i data-lucide="utensils" class="w-5 h-5 text-amber-600"></i>
+                    午餐
+                    <span id="badge-lunch" class="text-[10px] text-stone-400 font-normal">未打卡</span>
+                </button>
+                <button onclick="toggleProtein('dinner')" id="btn-protein-dinner" class="p-3 rounded-2xl border border-stone-200 bg-milk-50 text-stone-600 text-xs font-semibold flex flex-col items-center gap-1.5 transition active:scale-95">
+                    <i data-lucide="moon" class="w-5 h-5 text-indigo-400"></i>
+                    晚餐
+                    <span id="badge-dinner" class="text-[10px] text-stone-400 font-normal">未打卡</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- 任務 3: 減少久坐 (NEAT 活動) -->
+        <section class="bg-white p-5 rounded-3xl border border-stone-100 card-shadow">
+            <div class="flex justify-between items-center mb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-2.5 bg-sage-100 text-sage-700 rounded-2xl">
+                        <i data-lucide="footprints" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-stone-800 text-base">3. 避免久坐伸展</h3>
+                        <p class="text-xs text-stone-400">每坐 50 分鐘，站立活動 3 分鐘</p>
+                    </div>
+                </div>
+                <span id="sedentary-count" class="text-lg font-extrabold text-sage-700">0 次</span>
+            </div>
+
+            <button onclick="addSedentary()" class="w-full py-3 bg-sage-50 hover:bg-sage-100 text-sage-700 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition active:scale-98 border border-sage-200/60">
+                <i data-lucide="check-circle-2" class="w-5 h-5"></i> 剛剛站起來伸展了！
+            </button>
+        </section>
+
+        <!-- 任務 4: 溫和運動打卡 -->
+        <section class="bg-white p-5 rounded-3xl border border-stone-100 card-shadow">
+            <div class="flex items-center gap-2.5 mb-3">
+                <div class="p-2.5 bg-orange-50 text-orange-500 rounded-2xl">
+                    <i data-lucide="activity" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-stone-800 text-base">4. 溫和運動 (2選1即可)</h3>
+                    <p class="text-xs text-stone-400">快走 20 分鐘 或 居家微肌力</p>
+                </div>
+            </div>
+
+            <div class="space-y-2 pt-1">
+                <button onclick="toggleExercise('workout')" id="btn-ex-workout" class="w-full p-3.5 rounded-2xl border border-stone-200 bg-milk-50 text-left flex items-center justify-between transition">
+                    <div class="flex items-center gap-2.5">
+                        <i data-lucide="dumbbell" class="w-5 h-5 text-amber-600"></i>
+                        <div>
+                            <p class="text-xs font-bold text-stone-800">居家微肌力 (約15分鐘)</p>
+                            <p class="text-[11px] text-stone-400">椅子起立坐下 12次 x 3組 + 扶牆伏地挺身</p>
+                        </div>
+                    </div>
+                    <i id="icon-ex-workout" data-lucide="circle" class="w-5 h-5 text-stone-300"></i>
+                </button>
+
+                <button onclick="toggleExercise('walk')" id="btn-ex-walk" class="w-full p-3.5 rounded-2xl border border-stone-200 bg-milk-50 text-left flex items-center justify-between transition">
+                    <div class="flex items-center gap-2.5">
+                        <i data-lucide="navigation" class="w-5 h-5 text-emerald-600"></i>
+                        <div>
+                            <p class="text-xs font-bold text-stone-800">微喘快走 (20-30分鐘)</p>
+                            <p class="text-[11px] text-stone-400">晚餐後散步快走，保持可說話的微喘程度</p>
+                        </div>
+                    </div>
+                    <i id="icon-ex-walk" data-lucide="circle" class="w-5 h-5 text-stone-300"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- 體重紀錄與趨勢圖表 -->
+        <section class="bg-white p-5 rounded-3xl border border-stone-100 card-shadow">
+            <div class="flex items-center gap-2.5 mb-3">
+                <div class="p-2.5 bg-rose-50 text-rose-500 rounded-2xl">
+                    <i data-lucide="scale" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-stone-800 text-base">體重追蹤與紀錄</h3>
+                    <p class="text-xs text-stone-400">觀察長期趨勢，不用每天為數字焦慮</p>
+                </div>
+            </div>
+
+            <!-- 輸入體重表單 -->
+            <div class="flex gap-2 mb-4 pt-1">
+                <div class="relative flex-1">
+                    <input type="number" id="weight-input" step="0.1" placeholder="例如：84.0" class="w-full px-4 py-2.5 bg-milk-50 border border-stone-200 rounded-2xl text-sm font-semibold text-stone-800 focus:outline-none focus:border-amber-500">
+                    <span class="absolute right-4 top-2.5 text-xs text-stone-400 font-medium">kg</span>
+                </div>
+                <button onclick="saveWeight()" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs rounded-2xl transition active:scale-95 shadow-sm">
+                    紀錄
+                </button>
+            </div>
+
+            <!-- 圖表容器 -->
+            <div class="h-44 w-full pt-2">
+                <canvas id="weightChart"></canvas>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="max-w-md mx-auto px-4 mt-8 text-center text-xs text-stone-400">
+        <p>🔒 所有健康數據均安全保存在您手機本地端（LocalStorage）</p>
+        <p class="mt-1">設計給 40+ 擁抱健康新生活的妳</p>
+    </footer>
+
+    <!-- JavaScript 應用程式邏輯 -->
+    <script>
+        // 初始化 Lucide 圖示
+        lucide.createIcons();
+
+        // 代謝勵志語錄
+        const quotes = [
+            "「多喝一口水，就是為身體的代謝引擎加滿油！慢慢來，每天進步一點點。」",
+            "「肌肉是燃燒熱量的發動機，今天做幾個起立坐下，就是在積累發動機力量！」",
+            "「不追求快速變瘦，我們追求的是精神越來越好、身體越來越輕盈。」",
+            "「好好吃飯、足量蛋白質，身體才有充足養分把基礎代謝開到最大。」",
+            "「今晚早點入睡（睡滿 7 小時），睡眠就是免費又高效的代謝修復劑！」"
+        ];
+
+        // 隨機顯示今日小語
+        document.getElementById('quote-text').innerText = quotes[Math.floor(Math.random() * quotes.length)];
+
+        // 日期顯示
+        const now = new Date();
+        const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+        document.getElementById('current-date').innerText = now.toLocaleDateString('zh-TW', options);
+        const todayStr = now.toISOString().split('T')[0];
+
+        // 應用程式狀態管理 (LocalStorage 鍵名)
+        const STORAGE_KEY = 'metabolism_tracker_data';
+
+        function loadData() {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) {
+                return {
+                    water: 0,
+                    protein: { breakfast: false, lunch: false, dinner: false },
+                    sedentary: 0,
+                    exercise: { workout: false, walk: false },
+                    weights: [{ date: todayStr, val: 84.0 }]
+                };
+            }
+            const parsed = JSON.parse(raw);
+            // 檢查是否為新的一天，若為新一天，重置每日任務，但保留體重歷史
+            if (parsed.lastDate !== todayStr) {
+                parsed.water = 0;
+                parsed.protein = { breakfast: false, lunch: false, dinner: false };
+                parsed.sedentary = 0;
+                parsed.exercise = { workout: false, walk: false };
+                parsed.lastDate = todayStr;
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+            }
+            return parsed;
+        }
+
+        let appData = loadData();
+
+        function saveData() {
+            appData.lastDate = todayStr;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+            renderUI();
+        }
+
+        // 1. 水分邏輯
+        function addWater(amount) {
+            appData.water = Math.min(3000, appData.water + amount);
+            saveData();
+        }
+
+        function resetWater() {
+            appData.water = 0;
+            saveData();
+        }
+
+        // 2. 蛋白質邏輯
+        function toggleProtein(meal) {
+            appData.protein[meal] = !appData.protein[meal];
+            saveData();
+        }
+
+        // 3. 久坐伸展邏輯
+        function addSedentary() {
+            appData.sedentary += 1;
+            saveData();
+        }
+
+        // 4. 運動打卡邏輯
+        function toggleExercise(type) {
+            appData.exercise[type] = !appData.exercise[type];
+            saveData();
+        }
+
+        // 5. 體重紀錄邏輯
+        function saveWeight() {
+            const input = document.getElementById('weight-input');
+            const val = parseFloat(input.value);
+            if (isNaN(val) || val <= 0) {
+                alert('請輸入有效的體重數字！');
+                return;
+            }
+            
+            // 如果今天已經紀錄過，直接覆蓋今天的紀錄；否則新增紀錄
+            const existingIndex = appData.weights.findIndex(w => w.date === todayStr);
+            if (existingIndex >= 0) {
+                appData.weights[existingIndex].val = val;
+            } else {
+                appData.weights.push({ date: todayStr, val: val });
+            }
+
+            // 只保留最近 7 次紀錄
+            if (appData.weights.length > 7) {
+                appData.weights.shift();
+            }
+
+            input.value = '';
+            saveData();
+            updateChart();
+        }
+
+        // 一鍵重置今日資料
+        function resetTodayData() {
+            if (confirm('確定要重置今天的打卡紀錄嗎？（體重歷史紀錄會保留）')) {
+                appData.water = 0;
+                appData.protein = { breakfast: false, lunch: false, dinner: false };
+                appData.sedentary = 0;
+                appData.exercise = { workout: false, walk: false };
+                saveData();
+            }
+        }
+
+        // 畫面渲染 UI
+        function renderUI() {
+            // 渲染水量
+            document.getElementById('water-amount').innerText = appData.water;
+            const waterPercent = Math.min(100, (appData.water / 2000) * 100);
+            document.getElementById('water-progress-bar').style.width = waterPercent + '%';
+
+            // 渲染蛋白質三餐按鈕
+            ['breakfast', 'lunch', 'dinner'].forEach(meal => {
+                const btn = document.getElementById(`btn-protein-${meal}`);
+                const badge = document.getElementById(`badge-${meal}`);
+                if (appData.protein[meal]) {
+                    btn.className = "p-3 rounded-2xl border-2 border-amber-500 bg-amber-50 text-amber-800 text-xs font-semibold flex flex-col items-center gap-1.5 shadow-sm";
+                    badge.innerText = "已完成 ✓";
+                    badge.className = "text-[10px] text-amber-700 font-bold";
+                } else {
+                    btn.className = "p-3 rounded-2xl border border-stone-200 bg-milk-50 text-stone-600 text-xs font-semibold flex flex-col items-center gap-1.5 transition active:scale-95";
+                    badge.innerText = "未打卡";
+                    badge.className = "text-[10px] text-stone-400 font-normal";
+                }
+            });
+
+            // 渲染久坐次數
+            document.getElementById('sedentary-count').innerText = `${appData.sedentary} 次`;
+
+            // 渲染運動打卡按鈕
+            ['workout', 'walk'].forEach(type => {
+                const btn = document.getElementById(`btn-ex-${type}`);
+                const icon = document.getElementById(`icon-ex-${type}`);
+                if (appData.exercise[type]) {
+                    btn.className = "w-full p-3.5 rounded-2xl border-2 border-emerald-500 bg-emerald-50/60 text-left flex items-center justify-between transition shadow-sm";
+                    icon.setAttribute('data-lucide', 'check-circle-2');
+                    icon.className = "w-5 h-5 text-emerald-600";
+                } else {
+                    btn.className = "w-full p-3.5 rounded-2xl border border-stone-200 bg-milk-50 text-left flex items-center justify-between transition";
+                    icon.setAttribute('data-lucide', 'circle');
+                    icon.className = "w-5 h-5 text-stone-300";
+                }
+            });
+            lucide.createIcons();
+        }
+
+        // 初始化與渲染體重 Chart.js 圖表
+        let weightChart;
+        function updateChart() {
+            const ctx = document.getElementById('weightChart').getContext('2d');
+            const labels = appData.weights.map(w => w.date.slice(5)); // 取 MM-DD
+            const values = appData.weights.map(w => w.val);
+
+            if (weightChart) {
+                weightChart.destroy();
+            }
+
+            weightChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '體重 (kg)',
+                        data: values,
+                        borderColor: '#d97706',
+                        backgroundColor: 'rgba(217, 119, 6, 0.08)',
+                        borderWidth: 2.5,
+                        fill: true,
+                        tension: 0.3,
+                        pointBackgroundColor: '#b45309',
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { size: 10 }, color: '#a8a29e' }
+                        },
+                        y: {
+                            grid: { color: '#f5f5f4' },
+                            ticks: { font: { size: 10 }, color: '#a8a29e' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 初始化運行
+        window.onload = function() {
+            renderUI();
+            updateChart();
+        };
+    </script>
+</body>
+</html>
